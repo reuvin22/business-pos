@@ -101,7 +101,7 @@ export default function CartPanel() {
                     {line.price !== null && `${formatMoney(line.price, shop.currency)} / ${line.item?.unit}`}
                   </div>
                 </div>
-                <div className="font-bold text-heading tabular-nums">{formatMoney(line.total, shop.currency)}</div>
+                <div className="font-bold text-heading tabular-nums">{line.price === null ? '—' : formatMoney(line.total, shop.currency)}</div>
               </div>
               <div className="flex items-center gap-2">
                 <button type="button" className={ui.btnStep} aria-label="One less" onClick={() => shop.cart.setQuantity(line.key, line.quantity - 1)}>

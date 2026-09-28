@@ -49,12 +49,21 @@ export const stockKey = (productId: string, variantId: string | null) => `${prod
 /** The stock record's id at one location. */
 export const stockId = (itemKey: string, locationId: string) => `${itemKey}__${locationId}`
 
-/** The price per unit when buying `quantity`, or null when no tier fits. The lowest fitting tier wins. */
+/**
+ * The price per unit when buying `quantity` (same rule as counter_unit_price in the backend):
+ * the lowest tier that fits wins; buying more than the biggest tier's "to quantity" keeps that
+ * tier's price. null only when the quantity is below every tier (or there are no prices).
+ */
 export function unitPrice(item: SellableItem, quantity: number): number | null {
   const fitting = item.tiers
     .filter((t) => t.minimumQuantity <= quantity && (t.maximumQuantity === null || quantity <= t.maximumQuantity))
     .map((t) => t.price)
-  return fitting.length > 0 ? Math.min(...fitting) : null
+  if (fitting.length > 0) return Math.min(...fitting)
+
+  const started = item.tiers.filter((t) => t.minimumQuantity <= quantity)
+  if (started.length === 0) return null
+  const biggest = Math.max(...started.map((t) => t.minimumQuantity))
+  return Math.min(...started.filter((t) => t.minimumQuantity === biggest).map((t) => t.price))
 }
 
 /** The price shown on the item's button: the price for one, or else the cheapest tier ("from"). */

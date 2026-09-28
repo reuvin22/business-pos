@@ -89,7 +89,7 @@ export default function CartPanel() {
       </div>
 
       {lines.length === 0 ? (
-        <p className="py-6 text-center text-muted">Tap a product to add it.</p>
+        <p className="py-6 text-center text-muted">Tap a product to add it. Tap it again to remove it; change quantities here with − and +.</p>
       ) : (
         <ul className="flex flex-col divide-y divide-line">
           {lines.map((line) => (

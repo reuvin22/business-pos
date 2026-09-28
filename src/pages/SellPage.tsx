@@ -27,6 +27,7 @@ export default function SellPage() {
     }
   }
 
+  /** Scanning a barcode adds one more each time (a scanner scans every item). */
   function addToCart(item: SellableItem) {
     const inCart = shop.cart.lines.find((line) => line.key === item.key)?.quantity ?? 0
     if (inCart + 1 > shop.available(item.key)) {
@@ -35,6 +36,13 @@ export default function SellPage() {
     }
     setMessage('')
     shop.cart.add(item.key)
+  }
+
+  /** Tapping a product selects it (1 in the cart) or unselects it. Quantities are changed in the cart. */
+  function toggleItem(item: SellableItem) {
+    setMessage('')
+    if (shop.cart.lines.some((line) => line.key === item.key)) shop.cart.remove(item.key)
+    else addToCart(item)
   }
 
   return (
@@ -61,7 +69,7 @@ export default function SellPage() {
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
             {shown.map((item) => (
-              <ItemButton key={item.key} item={item} onAdd={() => addToCart(item)} />
+              <ItemButton key={item.key} item={item} onToggle={() => toggleItem(item)} />
             ))}
           </div>
         )}
@@ -87,22 +95,27 @@ export default function SellPage() {
   )
 }
 
-function ItemButton({ item, onAdd }: { item: SellableItem; onAdd: () => void }) {
+function ItemButton({ item, onToggle }: { item: SellableItem; onToggle: () => void }) {
   const { available, cart, currency } = useShop()
   const left = available(item.key)
   const inCart = cart.lines.find((line) => line.key === item.key)?.quantity ?? 0
+  const selected = inCart > 0
   const price = displayPrice(item)
   const soldOut = left <= 0
-  const canAdd = !soldOut && price !== null && inCart < left
+  // A selected product can always be unselected; a new one needs stock and a price
+  const canTap = selected || (!soldOut && price !== null)
 
   return (
     <button
       type="button"
-      onClick={onAdd}
-      disabled={!canAdd}
+      onClick={onToggle}
+      disabled={!canTap}
+      aria-pressed={selected}
+      title={selected ? 'Tap to remove from the cart' : 'Tap to add to the cart'}
       className={cx(
-        'relative flex cursor-pointer flex-col overflow-hidden rounded-[10px] border border-line bg-surface text-left transition-colors hover:enabled:border-accent disabled:cursor-not-allowed',
-        soldOut && 'opacity-55',
+        'relative flex cursor-pointer flex-col overflow-hidden rounded-[10px] border bg-surface text-left transition-colors disabled:cursor-not-allowed',
+        selected ? 'border-accent ring-2 ring-accent' : 'border-line hover:enabled:border-accent',
+        soldOut && !selected && 'opacity-55',
       )}
     >
       {item.imageUrl ? (
@@ -110,8 +123,11 @@ function ItemButton({ item, onAdd }: { item: SellableItem; onAdd: () => void }) 
       ) : (
         <span className="grid aspect-[4/3] w-full place-items-center bg-chip text-[1.6rem] font-bold text-muted">{initials(item.name)}</span>
       )}
-      {inCart > 0 && (
-        <span className="absolute top-2 right-2 grid min-w-7 place-items-center rounded-full bg-lime px-1.5 py-0.5 text-[0.85rem] font-bold text-ink">
+      {selected && (
+        <span className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-lime px-2 py-0.5 text-[0.85rem] font-bold text-ink">
+          <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth={3} aria-hidden>
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
           {inCart}
         </span>
       )}

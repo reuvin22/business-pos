@@ -51,6 +51,7 @@ async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> 
 // No browser cache here (unlike the main app): at the counter, numbers must always be current.
 export const get = <T>(path: string) => api<T>(path)
 export const post = <T>(path: string, body?: unknown) => api<T>(path, 'POST', body ?? {})
+export const del = (path: string) => api<void>(path, 'DELETE')
 
 /** Builds "?a=1&b=2" from an object, skipping empty values. */
 export function query(params: Record<string, string | undefined | null>) {

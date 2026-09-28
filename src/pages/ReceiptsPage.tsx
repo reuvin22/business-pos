@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { listReceipts, voidReceipt } from '../api/pos'
+import { deleteReceipt, listReceipts, voidReceipt } from '../api/pos'
 import type { Receipt } from '../api/types'
 import ReceiptView from '../components/ReceiptView'
 import { EmptyState, ErrorBox, Loading, Modal } from '../components/ui'
@@ -89,6 +89,11 @@ export default function ReceiptsPage() {
             receipts.reload()
             shop.refreshStock()
           }}
+          onDeleted={() => {
+            setOpen(null)
+            receipts.reload()
+            shop.refreshStock()
+          }}
         />
       )}
     </div>
@@ -104,10 +109,13 @@ function Stat({ label, value }: { label: string; value: string }) {
   )
 }
 
-function ReceiptDialog({ receipt, onClose, onVoided }: { receipt: Receipt; onClose: () => void; onVoided: (r: Receipt) => void }) {
+type DialogProps = { receipt: Receipt; onClose: () => void; onVoided: (r: Receipt) => void; onDeleted: () => void }
+
+function ReceiptDialog({ receipt, onClose, onVoided, onDeleted }: DialogProps) {
   const shop = useShop()
   const { user } = useAuth()
   const [voiding, setVoiding] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [reason, setReason] = useState('')
   const [error, setError] = useState('')
 
@@ -122,6 +130,16 @@ function ReceiptDialog({ receipt, onClose, onVoided }: { receipt: Receipt; onClo
     try {
       onVoided(await voidReceipt(shop.businessId, receipt.id, reason.trim()))
       setVoiding(false)
+    } catch (err) {
+      setError((err as Error).message)
+    }
+  }
+
+  async function handleDelete() {
+    setError('')
+    try {
+      await deleteReceipt(shop.businessId, receipt.id)
+      onDeleted()
     } catch (err) {
       setError((err as Error).message)
     }
@@ -146,8 +164,30 @@ function ReceiptDialog({ receipt, onClose, onVoided }: { receipt: Receipt; onClo
             </button>
           </div>
         </form>
+      ) : deleting ? (
+        <div className="mt-4 flex flex-col gap-2.5 print:hidden">
+          <p className={ui.alertWarn}>
+            Delete this receipt and its sales from the system?
+            {receipt.status === 'COMPLETED' && ' The stock goes back on the shelf.'} This cannot be undone.
+          </p>
+          <ErrorBox message={error} />
+          <div className="flex gap-2.5">
+            <button type="button" className={cx(ui.btnGhost, 'flex-1')} onClick={() => setDeleting(false)}>
+              Keep it
+            </button>
+            <button type="button" className={cx(ui.btnDanger, 'flex-1')} onClick={handleDelete}>
+              Delete receipt
+            </button>
+          </div>
+        </div>
       ) : (
-        <div className="mt-4 flex gap-2.5 print:hidden">
+        <div className="mt-4 flex flex-wrap gap-2.5 print:hidden">
+          {/* Managers only (the server checks too) */}
+          {shop.context.canVoidAny && (
+            <button type="button" className={cx(ui.btnGhost, 'text-danger')} onClick={() => setDeleting(true)}>
+              Delete
+            </button>
+          )}
           {canVoid && (
             <button type="button" className={cx(ui.btnGhost, 'text-danger')} onClick={() => setVoiding(true)}>
               Void

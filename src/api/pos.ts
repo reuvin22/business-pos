@@ -1,4 +1,4 @@
-import { get, post, query } from './client'
+import { del, get, post, query } from './client'
 import type { CheckoutIn, PosBusiness, PosContext, PosProduct, Receipt, StockItem, StockMovement } from './types'
 
 const shop = (businessId: string) => `/businesses/${businessId}/pos`
@@ -27,3 +27,5 @@ export const listReceipts = (businessId: string, date: string, locationId: strin
   get<Receipt[]>(`${shop(businessId)}/receipts${query({ date, location_id: locationId })}`)
 export const voidReceipt = (businessId: string, receiptId: string, reason: string) =>
   post<Receipt>(`${shop(businessId)}/receipts/${receiptId}/void`, { reason })
+/** Managers only: removes the receipt and its sales for good (stock goes back unless it was voided). */
+export const deleteReceipt = (businessId: string, receiptId: string) => del(`${shop(businessId)}/receipts/${receiptId}`)

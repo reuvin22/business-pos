@@ -47,6 +47,10 @@ export default function LoginPage() {
     <div className="grid min-h-screen place-items-center p-4">
       <form className={cx(ui.card, 'flex w-full max-w-sm flex-col gap-4 p-7')} onSubmit={handleSubmit}>
         <div>
+          <p className="mb-3 text-[0.8rem] leading-snug text-muted">
+            <span className="block text-[1.1rem] font-extrabold tracking-wide text-accent">SIRIS</span>
+            Supplier Inventory &amp; Retail Integration System
+          </p>
           <h1 className={ui.h1}>Selling</h1>
           <p className={ui.hint}>Sign in with the account your business gave you.</p>
         </div>

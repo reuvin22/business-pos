@@ -1,6 +1,6 @@
 # my-business-pos
 
-The selling app (point of sale) for businesses on My Business. Sellers sign in with the account the
+The selling app (point of sale) for businesses on **SIRIS — Supplier Inventory & Retail Integration System**. Sellers sign in with the account the
 business created for them (main app → Team → Sellers), sell the business's products at the counter,
 and record stock that comes in or goes out. Every sale takes the quantity out of the same inventory the
 main app shows, and both apps update live.

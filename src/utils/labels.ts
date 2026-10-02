@@ -23,6 +23,8 @@ const MOVEMENT_TYPES: Record<string, string> = {
   SALE: 'Sale',
   SALE_UNDONE: 'Sale voided',
   ORDER_SHIPPED: 'Order shipped',
+  ORDER_ACCEPTED: 'Order accepted',
+  ORDER_CANCELLED: 'Order cancelled (stock back)',
   RECORD_REMOVED: 'Record removed',
 }
 

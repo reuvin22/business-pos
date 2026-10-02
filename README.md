@@ -26,7 +26,7 @@ In the main app, set `VITE_POS_URL` to the deployed address so the Sellers secti
 | ---- | ------------ |
 | `/login` | Email + password (seller accounts), or Google for owners. |
 | `/` | Pick the business (skipped when you sell for only one). Then pick the store if you may use several. |
-| `/shop/:id` (Sell) | Tap products (or scan a barcode into the search box and press Enter). Cart, total, cash and change, Charge, printable receipt. |
+| `/shop/:id` (Sell) | Looks like the business's template (Default, Grocery, Restaurant, Coffee shop; see `src/utils/templates.ts`). Tap products (or scan a barcode into the search box and press Enter). Cart, total, cash and change, Charge, printable receipt. |
 | `/shop/:id/stock` | Recent stock changes at this store (sales, deliveries, corrections), updated live. Stock in/out is recorded in the main app. |
 | `/shop/:id/receipts` | Receipts and totals for one day, or **All dates** (the newest 500). Open one to print it again or void it (stock goes back). |
 | `/account` | Change your password. |

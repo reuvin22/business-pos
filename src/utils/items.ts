@@ -7,6 +7,9 @@ export type SellableItem = {
   productId: string
   variantId: string | null
   name: string // "Cola 1.5L (Original)"
+  productName: string // "Cola 1.5L"
+  variantName: string // "Original" ("" without variants)
+  categoryName: string // "" when the product has no category
   unit: string
   imageUrl: string
   searchText: string // name, SKU, and barcode, lowercase
@@ -35,9 +38,12 @@ function makeItem(product: PosProduct, variant: PosProduct['variants'][number] |
     productId: product.id,
     variantId: variant?.id ?? null,
     name,
+    productName: product.productName,
+    variantName: variant?.variantName ?? '',
+    categoryName: product.categoryName ?? '',
     unit: variant?.unit || product.unit,
     imageUrl: product.imageUrl,
-    searchText: [name, ...barcodes].join(' ').toLowerCase(),
+    searchText: [name, product.categoryName, ...barcodes].join(' ').toLowerCase(),
     barcodes,
     tiers,
   }

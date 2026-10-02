@@ -6,6 +6,7 @@ import { cx, ui } from '../styles'
 import { formatMoney, todayText } from '../utils/format'
 import { roundMoney, unitPrice, type SellableItem } from '../utils/items'
 import { ONLINE_METHODS, paymentMethods } from '../utils/labels'
+import { ORDER_TYPE_LABELS, templateOf, type OrderType } from '../utils/templates'
 import OnlinePaymentDialog from './OnlinePaymentDialog'
 import ReceiptView from './ReceiptView'
 import { ErrorBox, Modal } from './ui'
@@ -25,6 +26,12 @@ export default function CartPanel() {
   const [method, setMethod] = useState('CASH')
   const [paidText, setPaidText] = useState('')
   const [note, setNote] = useState('')
+  // Restaurants and coffee shops: how the order is served, the table, the customer's name
+  const template = templateOf(shop.context)
+  const [orderType, setOrderType] = useState<OrderType | ''>(template.orderTypes[0] ?? '')
+  const [table, setTable] = useState('')
+  const [customerName, setCustomerName] = useState('')
+  const needsTable = template.tableNumber && orderType === 'DINE_IN'
   const [error, setError] = useState('')
   const [charging, setCharging] = useState(false)
   const [receipt, setReceipt] = useState<Receipt | null>(null)
@@ -54,7 +61,8 @@ export default function CartPanel() {
   const paid = isCash && paidText.trim() !== '' ? Number(paidText) : total
   const change = roundMoney(paid - total)
   const hasProblem = lines.some((line) => line.problem)
-  const canCharge = lines.length > 0 && !hasProblem && !charging && paid >= total
+  const missing = needsTable && !table.trim() ? 'Enter the table number.' : ''
+  const canCharge = lines.length > 0 && !hasProblem && !charging && paid >= total && !missing
 
   // The sale is saved: show the receipt and start a new cart
   function finish(saved: Receipt) {
@@ -64,6 +72,8 @@ export default function CartPanel() {
     shop.refreshStock()
     setPaidText('')
     setNote('')
+    setTable('')
+    setCustomerName('')
   }
 
   async function charge() {
@@ -76,6 +86,9 @@ export default function CartPanel() {
       amountPaid: isCash && paidText.trim() !== '' ? paid : null,
       note: note.trim(),
       date: todayText(),
+      orderType: orderType || null,
+      tableNumber: needsTable ? table.trim() : '',
+      customerName: template.customerName ? customerName.trim() : '',
     }
     try {
       if (paysOnline) {
@@ -156,6 +169,40 @@ export default function CartPanel() {
         <span className="font-semibold text-heading">Total</span>
         <span className="text-[1.6rem] font-extrabold text-heading tabular-nums">{formatMoney(total, shop.currency)}</span>
       </div>
+
+      {template.orderTypes.length > 0 && (
+        <div className="flex flex-col gap-2 border-t border-line pt-3">
+          <div className="flex gap-2" role="group" aria-label="Order type">
+            {template.orderTypes.map((type) => (
+              <button
+                key={type}
+                type="button"
+                aria-pressed={orderType === type}
+                onClick={() => setOrderType(type)}
+                className={cx(
+                  'flex-1 cursor-pointer rounded-lg border px-2 py-2 text-[0.88rem] font-semibold',
+                  orderType === type ? 'border-accent bg-info-soft text-accent' : 'border-line bg-surface text-heading hover:border-muted',
+                )}
+              >
+                {ORDER_TYPE_LABELS[type]}
+              </button>
+            ))}
+          </div>
+          {needsTable && (
+            <input className={ui.input} placeholder="Table number *" value={table} maxLength={20} onChange={(e) => setTable(e.target.value)} />
+          )}
+          {template.customerName && (
+            <input
+              className={ui.input}
+              placeholder="Customer's name (to call when ready)"
+              value={customerName}
+              maxLength={60}
+              onChange={(e) => setCustomerName(e.target.value)}
+            />
+          )}
+          {missing && lines.length > 0 && <p className="text-[0.85rem] font-semibold text-warn">{missing}</p>}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-2">
         {methods.map((m) => (

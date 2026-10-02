@@ -3,6 +3,7 @@ import { useShop } from '../shopContext'
 import { cx } from '../styles'
 import { formatDateTime, formatMoney } from '../utils/format'
 import { paymentLabel } from '../utils/labels'
+import { ORDER_TYPE_LABELS, type OrderType } from '../utils/templates'
 
 /** A receipt as the customer sees it (also what gets printed). */
 export default function ReceiptView({ receipt }: { receipt: Receipt }) {
@@ -21,6 +22,13 @@ export default function ReceiptView({ receipt }: { receipt: Receipt }) {
         <span>No. {receipt.receiptNumber}</span>
         <span>{formatDateTime(receipt.createdAt)}</span>
       </div>
+      {(receipt.orderType || receipt.tableNumber || receipt.customerName) && (
+        <div className="flex flex-wrap justify-center gap-x-4 text-[1rem] font-bold">
+          {receipt.orderType && <span>{ORDER_TYPE_LABELS[receipt.orderType as OrderType] ?? receipt.orderType}</span>}
+          {receipt.tableNumber && <span>Table {receipt.tableNumber}</span>}
+          {receipt.customerName && <span>For {receipt.customerName}</span>}
+        </div>
+      )}
 
       <table className="w-full text-[0.9rem]">
         <tbody>

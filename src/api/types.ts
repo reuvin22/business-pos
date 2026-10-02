@@ -19,6 +19,26 @@ export type PosContext = {
   locations: PosLocation[]
   /** True when e-wallet, card, and bank transfer are paid online through Xendit (a QR code at the till) */
   onlinePayments: boolean
+  /** How the till looks (chosen in the main app, Team page): see utils/templates.ts */
+  template: PosTemplate
+  /** The business's own switches, when template is CUSTOM */
+  custom: PosCustomTemplate | null
+}
+
+export type PosTemplate = 'DEFAULT' | 'GROCERY' | 'RESTAURANT' | 'COFFEE_SHOP' | 'CUSTOM'
+
+/** A template the business made itself (main app, Team page): the same switches as utils/templates.ts */
+export type PosCustomTemplate = {
+  name: string
+  layout: 'tiles' | 'list'
+  photos: boolean
+  categoryTabs: boolean
+  variantButtons: boolean
+  stock: 'always' | 'low'
+  scanFirst: boolean
+  orderTypes: ('DINE_IN' | 'TAKE_OUT' | 'DELIVERY')[]
+  tableNumber: boolean
+  customerName: boolean
 }
 
 export type PosPrice = {
@@ -38,6 +58,7 @@ export type PosProduct = {
   unit: string
   imageUrl: string
   categoryId: string | null
+  categoryName: string
   variants: PosVariant[]
   prices: PosPrice[]
 }
@@ -95,6 +116,10 @@ export type Receipt = {
   paymentMethod: string
   /** Online payments: Xendit's payment id */
   paymentReference?: string
+  /** Restaurants and coffee shops */
+  orderType?: string | null
+  tableNumber?: string
+  customerName?: string
   note: string
   status: 'COMPLETED' | 'VOIDED'
   sellerUid: string
@@ -114,6 +139,10 @@ export type CheckoutIn = {
   note: string
   /** The seller's local date, YYYY-MM-DD */
   date: string
+  /** Restaurants and coffee shops (see utils/templates.ts) */
+  orderType?: string | null
+  tableNumber?: string
+  customerName?: string
 }
 
 /** A cart being paid online (Xendit), from the QR code to the receipt. */

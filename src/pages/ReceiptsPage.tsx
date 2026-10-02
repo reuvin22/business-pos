@@ -77,6 +77,9 @@ export default function ReceiptsPage() {
                   </td>
                   <td className={cx(ui.td, 'font-semibold text-accent')}>
                     {r.receiptNumber}
+                    {(r.tableNumber || r.customerName) && (
+                      <span className="ml-2 font-normal text-muted">{r.tableNumber ? `Table ${r.tableNumber}` : r.customerName}</span>
+                    )}
                     {r.status === 'VOIDED' && <span className={cx(ui.badge, 'ml-2 bg-danger-soft text-danger')}>Voided</span>}
                   </td>
                   <td className={ui.td}>{r.items.reduce((n, line) => n + line.quantity, 0)}</td>

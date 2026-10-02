@@ -81,7 +81,7 @@ export default function SellPage() {
         </form>
 
         {template.categoryTabs && categories.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Categories">
+          <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="Categories">
             {[ALL, ...categories].map((name) => (
               <button
                 key={name || 'all'}

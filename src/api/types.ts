@@ -17,6 +17,8 @@ export type PosContext = {
   canVoidAny: boolean
   /** A seller given a store sees only that one */
   locations: PosLocation[]
+  /** True when e-wallet, card, and bank transfer are paid online through Xendit (a QR code at the till) */
+  onlinePayments: boolean
 }
 
 export type PosPrice = {
@@ -91,6 +93,8 @@ export type Receipt = {
   amountPaid: number
   changeGiven: number
   paymentMethod: string
+  /** Online payments: Xendit's payment id */
+  paymentReference?: string
   note: string
   status: 'COMPLETED' | 'VOIDED'
   sellerUid: string
@@ -111,3 +115,18 @@ export type CheckoutIn = {
   /** The seller's local date, YYYY-MM-DD */
   date: string
 }
+
+/** A cart being paid online (Xendit), from the QR code to the receipt. */
+export type OnlinePayment = {
+  id: string
+  paymentMethod: string
+  total: number
+  currency: string
+  /** PAID_NOT_SAVED: the customer paid but the sale could not be saved (see error) */
+  status: 'PENDING' | 'COMPLETED' | 'PAID_NOT_SAVED' | 'EXPIRED' | 'CANCELED'
+  /** The page the customer pays on (shown as a QR code) */
+  paymentLinkUrl: string
+  receipt: Receipt | null
+  error: string
+}
+

@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { checkout } from '../api/pos'
-import type { Receipt } from '../api/types'
+import { checkout, startOnlinePayment } from '../api/pos'
+import type { OnlinePayment, Receipt } from '../api/types'
 import { useShop } from '../shopContext'
 import { cx, ui } from '../styles'
 import { formatMoney, todayText } from '../utils/format'
 import { roundMoney, unitPrice, type SellableItem } from '../utils/items'
-import { PAYMENT_METHODS } from '../utils/labels'
+import { ONLINE_METHODS, paymentMethods } from '../utils/labels'
+import OnlinePaymentDialog from './OnlinePaymentDialog'
 import ReceiptView from './ReceiptView'
 import { ErrorBox, Modal } from './ui'
 
@@ -27,6 +28,11 @@ export default function CartPanel() {
   const [error, setError] = useState('')
   const [charging, setCharging] = useState(false)
   const [receipt, setReceipt] = useState<Receipt | null>(null)
+  // An online payment waiting for the customer (QR code shown)
+  const [payment, setPayment] = useState<OnlinePayment | null>(null)
+  const online = shop.context.onlinePayments
+  const methods = paymentMethods(online)
+  const paysOnline = online && ONLINE_METHODS.includes(method)
 
   // Work out each line from the live catalog and stock, so prices and "only N left" are always current
   const lines: Line[] = shop.cart.lines.map(({ key, quantity }) => {
@@ -50,23 +56,34 @@ export default function CartPanel() {
   const hasProblem = lines.some((line) => line.problem)
   const canCharge = lines.length > 0 && !hasProblem && !charging && paid >= total
 
+  // The sale is saved: show the receipt and start a new cart
+  function finish(saved: Receipt) {
+    setPayment(null)
+    setReceipt(saved)
+    shop.cart.clear()
+    shop.refreshStock()
+    setPaidText('')
+    setNote('')
+  }
+
   async function charge() {
     setError('')
     setCharging(true)
+    const cart = {
+      locationId: shop.location.id,
+      items: lines.map((line) => ({ productId: line.item!.productId, variantId: line.item!.variantId, quantity: line.quantity })),
+      paymentMethod: method,
+      amountPaid: isCash && paidText.trim() !== '' ? paid : null,
+      note: note.trim(),
+      date: todayText(),
+    }
     try {
-      const saved = await checkout(shop.businessId, {
-        locationId: shop.location.id,
-        items: lines.map((line) => ({ productId: line.item!.productId, variantId: line.item!.variantId, quantity: line.quantity })),
-        paymentMethod: method,
-        amountPaid: isCash && paidText.trim() !== '' ? paid : null,
-        note: note.trim(),
-        date: todayText(),
-      })
-      setReceipt(saved)
-      shop.cart.clear()
-      shop.refreshStock()
-      setPaidText('')
-      setNote('')
+      if (paysOnline) {
+        // E-wallet, card, bank transfer: a QR code first; the sale is saved once the customer pays
+        setPayment(await startOnlinePayment(shop.businessId, cart))
+      } else {
+        finish(await checkout(shop.businessId, cart))
+      }
     } catch (err) {
       setError((err as Error).message)
     } finally {
@@ -141,7 +158,7 @@ export default function CartPanel() {
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        {PAYMENT_METHODS.map((m) => (
+        {methods.map((m) => (
           <button
             key={m.value}
             type="button"
@@ -192,8 +209,12 @@ export default function CartPanel() {
       <input className={ui.input} placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
       <ErrorBox message={error} />
       <button type="button" className={ui.btnCharge} disabled={!canCharge} onClick={charge}>
-        {charging ? 'Charging…' : `Charge ${formatMoney(total, shop.currency)}`}
+        {charging ? 'Charging…' : `Charge ${formatMoney(total, shop.currency)}${paysOnline ? ' · QR code' : ''}`}
       </button>
+
+      {payment && (
+        <OnlinePaymentDialog businessId={shop.businessId} payment={payment} onPaid={finish} onClose={() => setPayment(null)} />
+      )}
 
       {receipt && (
         <Modal title="Receipt" onClose={() => setReceipt(null)}>

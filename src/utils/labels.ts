@@ -1,16 +1,20 @@
 // Words shown for the codes the API uses.
 
-/** The ways a customer can pay at the counter. */
-export const PAYMENT_METHODS = [
-  { value: 'CASH', label: 'Cash' },
-  { value: 'E_WALLET', label: 'E-wallet' },
-]
+const PAYMENT_LABELS: Record<string, string> = {
+  CASH: 'Cash',
+  E_WALLET: 'E-wallet',
+  CARD: 'Card',
+  BANK_TRANSFER: 'Bank transfer',
+}
 
-// No longer offered, but older receipts may still show them
-const OLD_PAYMENT_LABELS: Record<string, string> = { CARD: 'Card', BANK_TRANSFER: 'Bank transfer' }
+/** Paid online through Xendit (QR code at the till) when online payments are on */
+export const ONLINE_METHODS = ['E_WALLET', 'CARD', 'BANK_TRANSFER']
 
-export const paymentLabel = (value: string) =>
-  PAYMENT_METHODS.find((m) => m.value === value)?.label ?? OLD_PAYMENT_LABELS[value] ?? value
+/** The ways a customer can pay at the counter. Without online payments: cash, or an e-wallet the seller checks. */
+export const paymentMethods = (online: boolean) =>
+  (online ? ['CASH', ...ONLINE_METHODS] : ['CASH', 'E_WALLET']).map((value) => ({ value, label: PAYMENT_LABELS[value] }))
+
+export const paymentLabel = (value: string) => PAYMENT_LABELS[value] ?? value
 
 const MOVEMENT_TYPES: Record<string, string> = {
   STOCK_ADDED: 'Stock added',

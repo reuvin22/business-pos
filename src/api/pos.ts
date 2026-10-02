@@ -1,5 +1,5 @@
 import { del, get, post, query } from './client'
-import type { CheckoutIn, PosBusiness, PosContext, PosProduct, Receipt, StockItem, StockMovement } from './types'
+import type { CheckoutIn, OnlinePayment, PosBusiness, PosContext, PosProduct, Receipt, StockItem, StockMovement } from './types'
 
 const shop = (businessId: string) => `/businesses/${businessId}/pos`
 
@@ -25,3 +25,14 @@ export const voidReceipt = (businessId: string, receiptId: string, reason: strin
   post<Receipt>(`${shop(businessId)}/receipts/${receiptId}/void`, { reason })
 /** Managers only: removes the receipt and its sales for good (stock goes back unless it was voided). */
 export const deleteReceipt = (businessId: string, receiptId: string) => del(`${shop(businessId)}/receipts/${receiptId}`)
+
+// ---- Online payments (Xendit: e-wallet, card, bank transfer) ----
+/** Makes a payment page for the cart. Nothing is sold until the customer pays. */
+export const startOnlinePayment = (businessId: string, body: CheckoutIn) =>
+  post<OnlinePayment>(`${shop(businessId)}/payments`, body)
+/** Ask every few seconds: once paid, the sale is saved and the receipt comes with it. */
+export const getOnlinePayment = (businessId: string, paymentId: string) =>
+  get<OnlinePayment>(`${shop(businessId)}/payments/${paymentId}`)
+export const cancelOnlinePayment = (businessId: string, paymentId: string) =>
+  post<OnlinePayment>(`${shop(businessId)}/payments/${paymentId}/cancel`)
+

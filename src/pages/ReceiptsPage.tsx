@@ -6,19 +6,21 @@ import { EmptyState, ErrorBox, Loading, Modal } from '../components/ui'
 import { useLoad } from '../hooks/useLoad'
 import { useShop } from '../shopContext'
 import { cx, ui } from '../styles'
-import { formatMoney, todayText } from '../utils/format'
+import { formatDateTime, formatMoney, todayText } from '../utils/format'
 import { paymentLabel } from '../utils/labels'
 import { useAuth } from '../useAuth'
 
 // Sellers may void their own receipts for one day (the server checks this too)
 const SELLER_VOID_WINDOW_MS = 24 * 60 * 60 * 1000
 
-/** The day's receipts at this store, with totals. Sellers see their own; managers see everyone's. */
+/** The receipts at this store for one day or all dates, with totals. Sellers see their own; managers see everyone's. */
 export default function ReceiptsPage() {
   const shop = useShop()
   const [date, setDate] = useState(todayText())
+  const [allDates, setAllDates] = useState(false)
   const [open, setOpen] = useState<Receipt | null>(null)
-  const receipts = useLoad(() => listReceipts(shop.businessId, date, shop.location.id), [shop.businessId, date, shop.location.id])
+  const day = allDates ? '' : date // "" = all dates
+  const receipts = useLoad(() => listReceipts(shop.businessId, day, shop.location.id), [shop.businessId, day, shop.location.id])
 
   const completed = (receipts.data ?? []).filter((r) => r.status === 'COMPLETED')
   const sum = (list: Receipt[]) => list.reduce((total, r) => total + r.total, 0)
@@ -29,7 +31,13 @@ export default function ReceiptsPage() {
       <div className={ui.sectionHead}>
         <h1 className={ui.h1}>Receipts</h1>
         <div className="flex items-center gap-2">
-          <input className={ui.inputAuto} type="date" value={date} max={todayText()} onChange={(e) => setDate(e.target.value || todayText())} aria-label="Day" />
+          <select className={ui.inputAuto} value={allDates ? 'all' : 'day'} onChange={(e) => setAllDates(e.target.value === 'all')} aria-label="Dates">
+            <option value="day">One day</option>
+            <option value="all">All dates</option>
+          </select>
+          {!allDates && (
+            <input className={ui.inputAuto} type="date" value={date} max={todayText()} onChange={(e) => setDate(e.target.value || todayText())} aria-label="Day" />
+          )}
           <button type="button" className={ui.btnGhost} onClick={receipts.reload}>
             Refresh
           </button>
@@ -47,13 +55,13 @@ export default function ReceiptsPage() {
       {!receipts.data ? (
         <Loading />
       ) : receipts.data.length === 0 ? (
-        <EmptyState text="No receipts on this day." />
+        <EmptyState text={allDates ? 'No receipts yet.' : 'No receipts on this day.'} />
       ) : (
         <div className={ui.tableWrap}>
           <table className={ui.table}>
             <thead>
               <tr>
-                <th className={ui.th}>Time</th>
+                <th className={ui.th}>{allDates ? 'Date' : 'Time'}</th>
                 <th className={ui.th}>Receipt</th>
                 <th className={ui.th}>Items</th>
                 <th className={ui.th}>Payment</th>
@@ -64,7 +72,9 @@ export default function ReceiptsPage() {
             <tbody>
               {receipts.data.map((r) => (
                 <tr key={r.id} className="cursor-pointer hover:bg-page" onClick={() => setOpen(r)}>
-                  <td className={ui.td}>{new Date(r.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</td>
+                  <td className={ui.td}>
+                    {allDates ? formatDateTime(r.createdAt) : new Date(r.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                  </td>
                   <td className={cx(ui.td, 'font-semibold text-accent')}>
                     {r.receiptNumber}
                     {r.status === 'VOIDED' && <span className={cx(ui.badge, 'ml-2 bg-danger-soft text-danger')}>Voided</span>}

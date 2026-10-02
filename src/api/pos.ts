@@ -15,14 +15,10 @@ export const listStock = (businessId: string, locationId: string) =>
   get<StockItem[]>(`${shop(businessId)}/stock${query({ location_id: locationId })}`)
 export const listStockHistory = (businessId: string, locationId: string) =>
   get<StockMovement[]>(`${shop(businessId)}/stock-history${query({ location_id: locationId })}`)
-/** + stock received, − stock taken out (needs a reason). */
-export const changeStock = (
-  businessId: string,
-  body: { locationId: string; productId: string; variantId: string | null; change: number; note: string },
-) => post<StockItem>(`${shop(businessId)}/stock-changes`, body)
 
 // ---- Selling ----
 export const checkout = (businessId: string, body: CheckoutIn) => post<Receipt>(`${shop(businessId)}/checkouts`, body)
+/** date: one day ("2026-10-02"), or "" for all dates (the newest 500 receipts). */
 export const listReceipts = (businessId: string, date: string, locationId: string) =>
   get<Receipt[]>(`${shop(businessId)}/receipts${query({ date, location_id: locationId })}`)
 export const voidReceipt = (businessId: string, receiptId: string, reason: string) =>

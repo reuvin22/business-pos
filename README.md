@@ -1,8 +1,8 @@
 # my-business-pos
 
 The selling app (point of sale) for businesses on **SIRIS — Supplier Inventory & Retail Integration System**. Sellers sign in with the account the
-business created for them (main app → Team → Sellers), sell the business's products at the counter,
-and record stock that comes in or goes out. Every sale takes the quantity out of the same inventory the
+business created for them (main app → Team → Sellers), sell the business's products at the counter
+(paid in cash or by e-wallet), and see the recent stock changes at their store. Every sale takes the quantity out of the same inventory the
 main app shows, and both apps update live.
 
 React + TypeScript + Vite + Tailwind, like `my-business-fe`. It talks to the same API (`my-business-be`)
@@ -27,8 +27,8 @@ In the main app, set `VITE_POS_URL` to the deployed address so the Sellers secti
 | `/login` | Email + password (seller accounts), or Google for owners. |
 | `/` | Pick the business (skipped when you sell for only one). Then pick the store if you may use several. |
 | `/shop/:id` (Sell) | Tap products (or scan a barcode into the search box and press Enter). Cart, total, cash and change, Charge, printable receipt. |
-| `/shop/:id/stock` | Live stock at this store. **+ In** for deliveries, **− Out** for damaged/expired (needs a reason). Recent history. |
-| `/shop/:id/receipts` | The day's receipts and totals. Open one to print it again or void it (stock goes back). |
+| `/shop/:id/stock` | Recent stock changes at this store (sales, deliveries, corrections), updated live. Stock in/out is recorded in the main app. |
+| `/shop/:id/receipts` | Receipts and totals for one day, or **All dates** (the newest 500). Open one to print it again or void it (stock goes back). |
 | `/account` | Change your password. |
 
 ## Folder structure
@@ -49,7 +49,7 @@ src/
 
 `useLiveStock` listens to `businesses/{id}/inventory` in Firestore (read only). The backend's
 `firestore.rules` must be deployed for this; until then the app asks the API every 10 seconds, and the
-header badge says **Refreshing** instead of **Live**. All changes (sales, stock in/out, voids) go through
+header badge says **Refreshing** instead of **Live**. All changes (sales, voids) go through
 the API, which checks permissions and writes the stock history.
 
 ## Deploy (Vercel)

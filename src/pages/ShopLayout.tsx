@@ -13,6 +13,7 @@ import { ShopContext, type Shop } from '../shopContext'
 import { cx, ui } from '../styles'
 import { initials } from '../utils/format'
 import { stockId } from '../utils/items'
+import ThemeSwitch from '../components/ThemeSwitch'
 
 const savedStoreKey = (businessId: string) => `pos:store:${businessId}`
 
@@ -149,6 +150,7 @@ function Shop({ context, location, onChangeStore }: { context: PosContext; locat
           </nav>
           <div className="ml-auto flex items-center gap-3 text-[0.85rem]">
             {live.stock && <LiveBadge live={live.live} />}
+            <ThemeSwitch />
             <Link to="/account" className="font-semibold text-side-heading no-underline hover:underline" title="Your account">
               {context.sellerName}
             </Link>

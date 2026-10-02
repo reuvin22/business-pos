@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { deleteReceipt, listReceipts, voidReceipt } from '../api/pos'
 import type { Receipt } from '../api/types'
+import DateRangePicker, { type DateRange } from '../components/DateRangePicker'
 import ReceiptView from '../components/ReceiptView'
 import { EmptyState, ErrorBox, Loading, Modal } from '../components/ui'
 import { useLoad } from '../hooks/useLoad'
@@ -13,14 +14,17 @@ import { useAuth } from '../useAuth'
 // Sellers may void their own receipts for one day (the server checks this too)
 const SELLER_VOID_WINDOW_MS = 24 * 60 * 60 * 1000
 
-/** The receipts at this store for one day or all dates, with totals. Sellers see their own; managers see everyone's. */
+/** The receipts at this store for a day, a range of days, or all dates, with totals.
+ * Sellers see their own; managers see everyone's. */
 export default function ReceiptsPage() {
   const shop = useShop()
-  const [date, setDate] = useState(todayText())
-  const [allDates, setAllDates] = useState(false)
+  const [range, setRange] = useState<DateRange>({ from: todayText(), to: todayText() })
   const [open, setOpen] = useState<Receipt | null>(null)
-  const day = allDates ? '' : date // "" = all dates
-  const receipts = useLoad(() => listReceipts(shop.businessId, day, shop.location.id), [shop.businessId, day, shop.location.id])
+  const oneDay = range.from !== '' && range.from === range.to
+  const receipts = useLoad(
+    () => listReceipts(shop.businessId, range.from, range.to, shop.location.id),
+    [shop.businessId, range.from, range.to, shop.location.id],
+  )
 
   const completed = (receipts.data ?? []).filter((r) => r.status === 'COMPLETED')
   const sum = (list: Receipt[]) => list.reduce((total, r) => total + r.total, 0)
@@ -31,13 +35,7 @@ export default function ReceiptsPage() {
       <div className={ui.sectionHead}>
         <h1 className={ui.h1}>Receipts</h1>
         <div className="flex items-center gap-2">
-          <select className={ui.inputAuto} value={allDates ? 'all' : 'day'} onChange={(e) => setAllDates(e.target.value === 'all')} aria-label="Dates">
-            <option value="day">One day</option>
-            <option value="all">All dates</option>
-          </select>
-          {!allDates && (
-            <input className={ui.inputAuto} type="date" value={date} max={todayText()} onChange={(e) => setDate(e.target.value || todayText())} aria-label="Day" />
-          )}
+          <DateRangePicker label="Dates" value={range} onChange={setRange} max={todayText()} allowAll />
           <button type="button" className={ui.btnGhost} onClick={receipts.reload}>
             Refresh
           </button>
@@ -55,13 +53,13 @@ export default function ReceiptsPage() {
       {!receipts.data ? (
         <Loading />
       ) : receipts.data.length === 0 ? (
-        <EmptyState text={allDates ? 'No receipts yet.' : 'No receipts on this day.'} />
+        <EmptyState text={range.from ? (oneDay ? 'No receipts on this day.' : 'No receipts on these days.') : 'No receipts yet.'} />
       ) : (
         <div className={ui.tableWrap}>
           <table className={ui.table}>
             <thead>
               <tr>
-                <th className={ui.th}>{allDates ? 'Date' : 'Time'}</th>
+                <th className={ui.th}>{oneDay ? 'Time' : 'Date'}</th>
                 <th className={ui.th}>Receipt</th>
                 <th className={ui.th}>Items</th>
                 <th className={ui.th}>Payment</th>
@@ -73,7 +71,7 @@ export default function ReceiptsPage() {
               {receipts.data.map((r) => (
                 <tr key={r.id} className="cursor-pointer hover:bg-page" onClick={() => setOpen(r)}>
                   <td className={ui.td}>
-                    {allDates ? formatDateTime(r.createdAt) : new Date(r.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                    {oneDay ? new Date(r.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : formatDateTime(r.createdAt)}
                   </td>
                   <td className={cx(ui.td, 'font-semibold text-accent')}>
                     {r.receiptNumber}

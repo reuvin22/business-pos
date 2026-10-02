@@ -18,9 +18,9 @@ export const listStockHistory = (businessId: string, locationId: string) =>
 
 // ---- Selling ----
 export const checkout = (businessId: string, body: CheckoutIn) => post<Receipt>(`${shop(businessId)}/checkouts`, body)
-/** date: one day ("2026-10-02"), or "" for all dates (the newest 500 receipts). */
-export const listReceipts = (businessId: string, date: string, locationId: string) =>
-  get<Receipt[]>(`${shop(businessId)}/receipts${query({ date, location_id: locationId })}`)
+/** From one day to another ("2026-10-01", "2026-10-15"; both included). Both "" = all dates (the newest 500). */
+export const listReceipts = (businessId: string, from: string, to: string, locationId: string) =>
+  get<Receipt[]>(`${shop(businessId)}/receipts${query({ date_from: from, date_to: to, location_id: locationId })}`)
 export const voidReceipt = (businessId: string, receiptId: string, reason: string) =>
   post<Receipt>(`${shop(businessId)}/receipts/${receiptId}/void`, { reason })
 /** Managers only: removes the receipt and its sales for good (stock goes back unless it was voided). */

@@ -1,14 +1,16 @@
 import { signOut } from 'firebase/auth'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useParams } from 'react-router-dom'
 import { getContext } from '../api/pos'
 import type { PosContext, PosLocation } from '../api/types'
+import PhoneScannerDialog from '../components/PhoneScannerDialog'
 import { ErrorBox, LiveBadge, Loading } from '../components/ui'
 import { auth } from '../firebase'
 import { useCart } from '../hooks/useCart'
 import { useCatalog } from '../hooks/useCatalog'
 import { useLiveStock } from '../hooks/useLiveStock'
 import { useLoad } from '../hooks/useLoad'
+import { usePhoneScanner } from '../hooks/usePhoneScanner'
 import { ShopContext, type Shop } from '../shopContext'
 import { cx, ui } from '../styles'
 import { initials } from '../utils/format'
@@ -92,6 +94,31 @@ function Shop({ context, location, onChangeStore }: { context: PosContext; locat
   const catalog = useCatalog(businessId)
   const live = useLiveStock(businessId, location.id)
   const cart = useCart(`pos:cart:${businessId}:${location.id}`)
+  const available = (itemKey: string) => live.stock?.[stockId(itemKey, location.id)]?.availableQuantity ?? 0
+
+  // A phone (SIRIS Scanner) paired with this till: each product it scans goes into the cart (not sold until Charge)
+  const [scannerOpen, setScannerOpen] = useState(false)
+  const [scanNotice, setScanNotice] = useState<{ text: string; ok: boolean; id: string } | null>(null)
+  const scanner = usePhoneScanner(businessId, location.id, (scan) => {
+    const items = catalog.items ?? []
+    const item = items.find((i) => i.key === scan.itemKey) ?? items.find((i) => i.barcodes.includes(scan.barcode))
+    if (!item) {
+      setScanNotice({ id: scan.id, ok: false, text: `${scan.productName} was scanned, but it is not in this till's list yet. Reload the page.` })
+      return
+    }
+    const inCart = cart.lines.find((line) => line.key === item.key)?.quantity ?? 0
+    if (inCart + 1 > available(item.key)) {
+      setScanNotice({ id: scan.id, ok: false, text: `No more ${item.name} in stock here.` })
+      return
+    }
+    cart.add(item.key)
+    setScanNotice({ id: scan.id, ok: true, text: `Added ${item.name}` })
+  })
+  useEffect(() => {
+    if (!scanNotice) return
+    const timer = window.setTimeout(() => setScanNotice(null), 3500)
+    return () => window.clearTimeout(timer)
+  }, [scanNotice])
 
   const shop: Shop = {
     businessId,
@@ -104,7 +131,7 @@ function Shop({ context, location, onChangeStore }: { context: PosContext; locat
     stockLive: live.live,
     stockError: live.error,
     refreshStock: live.refresh,
-    available: (itemKey) => live.stock?.[stockId(itemKey, location.id)]?.availableQuantity ?? 0,
+    available,
     cart,
   }
 
@@ -149,6 +176,18 @@ function Shop({ context, location, onChangeStore }: { context: PosContext; locat
             </NavLink>
           </nav>
           <div className="ml-auto flex items-center gap-3 text-[0.85rem]">
+            <button
+              type="button"
+              className={cx(
+                'flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 font-semibold',
+                scanner.scannerName ? 'border-lime bg-lime text-ink' : 'border-side-text/40 text-side-heading hover:border-lime',
+              )}
+              onClick={() => setScannerOpen(true)}
+              title="Use a phone as a barcode scanner for this till"
+            >
+              {scanner.scannerName && <span className="size-1.5 animate-pulse rounded-full bg-ink" />}
+              {scanner.scannerName ? `Scanner: ${scanner.scannerName}` : 'Phone scanner'}
+            </button>
             {live.stock && <LiveBadge live={live.live} />}
             <ThemeSwitch />
             <Link to="/account" className="font-semibold text-side-heading no-underline hover:underline" title="Your account">
@@ -161,6 +200,19 @@ function Shop({ context, location, onChangeStore }: { context: PosContext; locat
         </header>
         <Outlet />
       </div>
+      {scannerOpen && <PhoneScannerDialog scanner={scanner} onClose={() => setScannerOpen(false)} />}
+      {scanNotice && (
+        <div
+          role="status"
+          className={cx(
+            'fixed right-4 bottom-4 z-40 max-w-sm rounded-xl px-4 py-3 text-[0.95rem] font-semibold shadow-lg print:hidden',
+            scanNotice.ok ? 'bg-side text-side-heading' : 'bg-danger text-white',
+          )}
+        >
+          {scanNotice.ok ? '📱 ' : ''}
+          {scanNotice.text}
+        </div>
+      )}
     </ShopContext.Provider>
   )
 }

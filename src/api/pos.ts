@@ -1,5 +1,15 @@
 import { del, get, post, query } from './client'
-import type { CheckoutIn, OnlinePayment, PosBusiness, PosContext, PosProduct, Receipt, StockItem, StockMovement } from './types'
+import type {
+  CheckoutIn,
+  OnlinePayment,
+  PosBusiness,
+  PosContext,
+  PosProduct,
+  Receipt,
+  ScannerStarted,
+  StockItem,
+  StockMovement,
+} from './types'
 
 const shop = (businessId: string) => `/businesses/${businessId}/pos`
 
@@ -35,4 +45,14 @@ export const getOnlinePayment = (businessId: string, paymentId: string) =>
   get<OnlinePayment>(`${shop(businessId)}/payments/${paymentId}`)
 export const cancelOnlinePayment = (businessId: string, paymentId: string) =>
   post<OnlinePayment>(`${shop(businessId)}/payments/${paymentId}/cancel`)
+
+// ---- Phone scanner (the SIRIS Scanner app) ----
+/**
+ * Starts a session for THIS till (tillDeviceId: utils/tillDevice.ts). It gets its own one-time QR code; the phone
+ * scans it (no sign-in needed) and every barcode it scans lands in this till's cart.
+ */
+export const startScannerSession = (businessId: string, locationId: string, tillDeviceId: string) =>
+  post<ScannerStarted>(`${shop(businessId)}/scanner-sessions`, { locationId, tillDeviceId })
+export const endScannerSession = (businessId: string, sessionId: string, tillDeviceId: string) =>
+  del(`${shop(businessId)}/scanner-sessions/${sessionId}?till_device_id=${encodeURIComponent(tillDeviceId)}`)
 

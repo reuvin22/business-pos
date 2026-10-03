@@ -159,3 +159,26 @@ export type OnlinePayment = {
   error: string
 }
 
+// ---- Phone scanner (the SIRIS Scanner app) ----
+
+export type ScannerSession = {
+  id: string
+  locationId: string
+  locationName: string
+  tillDeviceId: string
+  tillUid: string
+  tillName: string
+  active: boolean
+  expiresAt: number
+  scannerName: string
+  pairedAt: number | null
+  lastScanAt: number | null
+  createdAt: number
+}
+
+/** The till shows its own one-time pairing code: as a QR code (qrText: "SIRIS-SCAN:<code>") and as text. */
+export type ScannerStarted = { session: ScannerSession; pairingCode: string; qrText: string; pairingExpiresAt: number }
+
+/** One barcode the phone scanned: the item to put in the cart. */
+export type ScanEvent = { id: string; barcode: string; itemKey: string; productName: string; scannedByName: string; createdAt: number }
+

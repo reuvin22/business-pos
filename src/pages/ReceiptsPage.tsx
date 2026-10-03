@@ -11,8 +11,9 @@ import { formatDateTime, formatMoney, todayText } from '../utils/format'
 import { paymentLabel } from '../utils/labels'
 import { useAuth } from '../useAuth'
 
-// Sellers may void their own receipts for one day (the server checks this too)
-const SELLER_VOID_WINDOW_MS = 24 * 60 * 60 * 1000
+// Sellers may void their own sale only within 15 minutes of it, e.g. a mistake at the till (the server checks
+// this too). Later, a manager must. Every void is reported to the business's managers.
+const SELLER_VOID_WINDOW_MS = 15 * 60 * 1000
 
 /** The receipts at this store for a day, a range of days, or all dates, with totals.
  * Sellers see their own; managers see everyone's. */

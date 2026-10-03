@@ -57,9 +57,10 @@ export function usePhoneScanner(businessId: string, locationId: string, onScan: 
   useEffect(() => {
     if (!sessionId) return
     let handledUntil = since
+    const handled = new Set<string>() // each scan goes in the cart once, even if two arrive in the same millisecond
     const newScans = query(
       collection(db, 'businesses', businessId, 'scannerSessions', sessionId, 'scans'),
-      where('createdAt', '>', since),
+      where('createdAt', '>', since), // after the last scan handled (kept in this browser), so a reload adds none twice
       orderBy('createdAt'),
     )
     return onSnapshot(
@@ -68,7 +69,8 @@ export function usePhoneScanner(businessId: string, locationId: string, onScan: 
         for (const change of snapshot.docChanges()) {
           if (change.type !== 'added') continue
           const scan = { ...(change.doc.data() as Omit<ScanEvent, 'id'>), id: change.doc.id }
-          if (scan.createdAt <= handledUntil) continue
+          if (scan.createdAt < handledUntil || handled.has(scan.id)) continue
+          handled.add(scan.id)
           handledUntil = scan.createdAt
           latestOnScan.current(scan)
         }

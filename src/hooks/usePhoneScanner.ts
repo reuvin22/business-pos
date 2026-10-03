@@ -1,6 +1,6 @@
 import { collection, doc, onSnapshot, orderBy, query, where } from 'firebase/firestore'
 import { useEffect, useRef, useState } from 'react'
-import { endScannerSession, startScannerSession } from '../api/pos'
+import { approveScannerSession, endScannerSession, startScannerSession } from '../api/pos'
 import type { ScanEvent, ScannerSession, ScannerStarted } from '../api/types'
 import { db } from '../firebase'
 import { tillDeviceId } from '../utils/tillDevice'
@@ -87,10 +87,10 @@ export function usePhoneScanner(businessId: string, locationId: string, onScan: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [businessId, sessionId, storageKey])
 
-  async function start() {
+  async function start(allowRegister = false) {
     setError('')
     try {
-      const started = await startScannerSession(businessId, locationId, tillDeviceId())
+      const started = await startScannerSession(businessId, locationId, tillDeviceId(), allowRegister)
       const next = { started, handledUntil: started.session.createdAt }
       write(storageKey, next)
       setSession(null)
@@ -108,12 +108,29 @@ export function usePhoneScanner(businessId: string, locationId: string, onScan: 
     setSession(null)
   }
 
+  /** "Ana's phone wants to connect" -> Allow */
+  async function approve() {
+    setError('')
+    if (!sessionId) return
+    try {
+      await approveScannerSession(businessId, sessionId, tillDeviceId())
+    } catch (err) {
+      setError((err as Error).message)
+    }
+  }
+
   // (After expiresAt the API refuses scans and the phone is told to pair again)
   const open = !!session && session.active
+  const name = session?.scannerName || 'Phone scanner'
   return {
     started: saved?.started ?? null,
-    /** The phone's name once it is connected */
-    scannerName: open && session.pairedAt ? session.scannerName || 'Phone scanner' : '',
+    /** The phone's name once it is connected AND approved */
+    scannerName: open && session.pairedAt && session.approved ? name : '',
+    /** A phone scanned this till's QR code and waits for the cashier's OK (its name; '' when none waits) */
+    waitingName: open && session.pairedAt && !session.approved ? name : '',
+    /** The phone may also register products */
+    canRegister: !!session?.allowRegister,
+    approve,
     /** The session ended (on the phone, or it expired): the till can start a new one */
     ended: !!saved && !!session && !open,
     error,

@@ -11,9 +11,19 @@ const showCode = (code: string) => code.replace(/(.{4})(?=.)/g, '$1-')
  * Connect a phone (the SIRIS Scanner app) to this till: it scans the QR code shown here. Then every barcode the
  * phone scans goes into this cart. Nothing is sold until you press Charge.
  */
-export default function PhoneScannerDialog({ scanner, onClose }: { scanner: PhoneScanner; onClose: () => void }) {
+export default function PhoneScannerDialog({
+  scanner,
+  canManageProducts,
+  onClose,
+}: {
+  scanner: PhoneScanner
+  /** The person signed in may let the phone register products too */
+  canManageProducts: boolean
+  onClose: () => void
+}) {
   const [qr, setQr] = useState('')
   const [busy, setBusy] = useState(false)
+  const [allowRegister, setAllowRegister] = useState(false)
   const code = scanner.started?.pairingCode ?? ''
   const qrText = scanner.started?.qrText ?? ''
   const connected = !!scanner.scannerName
@@ -44,9 +54,26 @@ export default function PhoneScannerDialog({ scanner, onClose }: { scanner: Phon
           </p>
         </div>
 
-        {connected ? (
+        {scanner.waitingName ? (
+          <div className="flex flex-col gap-2 rounded-lg border-2 border-warn bg-warn-soft px-4 py-3 text-heading">
+            <strong className="text-[1.05rem]">“{scanner.waitingName}” wants to connect</strong>
+            <span className="text-[0.9rem]">
+              Only allow it if it is the phone in front of you. If you do not know it (for example, someone photographed the QR
+              code), reject it: it can do nothing until you allow it.
+            </span>
+            <div className="flex gap-2">
+              <button type="button" className={ui.btnPrimary} disabled={busy} onClick={() => run(scanner.approve)}>
+                Allow
+              </button>
+              <button type="button" className={ui.btnGhost} disabled={busy} onClick={() => run(scanner.stop)}>
+                Reject
+              </button>
+            </div>
+          </div>
+        ) : connected ? (
           <div className="flex flex-col gap-2 rounded-lg bg-info-soft px-4 py-3 text-heading">
             <strong>Connected: {scanner.scannerName}</strong>
+            {scanner.canRegister && <span className="text-[0.88rem]">It may also register products.</span>}
             <span className="text-[0.88rem]">Scan products with the phone. To stop, disconnect here or on the phone.</span>
           </div>
         ) : scanner.started && !scanner.ended ? (
@@ -63,9 +90,22 @@ export default function PhoneScannerDialog({ scanner, onClose }: { scanner: Phon
             </p>
           </div>
         ) : (
-          <p className={cx(ui.hint, 'm-0')}>
-            {scanner.ended ? 'The phone disconnected (or the session ended). ' : ''}Start to show a QR code for the phone to scan.
-          </p>
+          <div className="flex flex-col gap-2">
+            <p className={cx(ui.hint, 'm-0')}>
+              {scanner.ended ? 'The phone disconnected (or the session ended). ' : ''}Start to show a QR code for the phone to scan.
+            </p>
+            {canManageProducts && (
+              <label className="flex items-start gap-2 text-[0.9rem] text-heading">
+                <input type="checkbox" className="mt-1" checked={allowRegister} onChange={(e) => setAllowRegister(e.target.checked)} />
+                <span>
+                  Allow this phone to register products too
+                  <span className="block text-[0.8rem] text-muted">
+                    Only for your own phone: it can add products in your name. It disconnects after 30 minutes unused (2 hours at most).
+                  </span>
+                </span>
+              </label>
+            )}
+          </div>
         )}
 
         <ErrorBox message={scanner.error} />
@@ -76,8 +116,8 @@ export default function PhoneScannerDialog({ scanner, onClose }: { scanner: Phon
               Disconnect
             </button>
           )}
-          {!connected && (
-            <button type="button" className={ui.btnPrimary} disabled={busy} onClick={() => run(scanner.start)}>
+          {!connected && !scanner.waitingName && (
+            <button type="button" className={ui.btnPrimary} disabled={busy} onClick={() => run(() => scanner.start(allowRegister))}>
               {busy ? 'Please wait…' : scanner.started ? 'New code' : 'Connect a phone'}
             </button>
           )}

@@ -15,6 +15,8 @@ export type PosContext = {
   role: string
   /** Managers can void anyone's receipt; sellers only their own, within a day */
   canVoidAny: boolean
+  /** May let a phone scanner register products */
+  canManageProducts?: boolean
   /** A seller given a store sees only that one */
   locations: PosLocation[]
   /** True when e-wallet, card, and bank transfer are paid online through Xendit (a QR code at the till) */
@@ -172,6 +174,9 @@ export type ScannerSession = {
   expiresAt: number
   scannerName: string
   pairedAt: number | null
+  /** The till approved the phone (until then it can do nothing) */
+  approved?: boolean
+  allowRegister?: boolean
   lastScanAt: number | null
   createdAt: number
 }

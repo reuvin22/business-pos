@@ -114,6 +114,13 @@ function Shop({ context, location, onChangeStore }: { context: PosContext; locat
     cart.add(item.key)
     setScanNotice({ id: scan.id, ok: true, text: `Added ${item.name}` })
   })
+  // A phone scanned this till's QR code: ask the cashier right away (it can do nothing until allowed)
+  const waitingFor = scanner.waitingName
+  const [askedFor, setAskedFor] = useState('')
+  if (waitingFor && askedFor !== waitingFor) {
+    setAskedFor(waitingFor)
+    setScannerOpen(true)
+  }
   useEffect(() => {
     if (!scanNotice) return
     const timer = window.setTimeout(() => setScanNotice(null), 3500)
@@ -186,7 +193,7 @@ function Shop({ context, location, onChangeStore }: { context: PosContext; locat
               title="Use a phone as a barcode scanner for this till"
             >
               {scanner.scannerName && <span className="size-1.5 animate-pulse rounded-full bg-ink" />}
-              {scanner.scannerName ? `Scanner: ${scanner.scannerName}` : 'Phone scanner'}
+              {scanner.waitingName ? 'Approve phone?' : scanner.scannerName ? `Scanner: ${scanner.scannerName}` : 'Phone scanner'}
             </button>
             {live.stock && <LiveBadge live={live.live} />}
             <ThemeSwitch />
@@ -200,7 +207,9 @@ function Shop({ context, location, onChangeStore }: { context: PosContext; locat
         </header>
         <Outlet />
       </div>
-      {scannerOpen && <PhoneScannerDialog scanner={scanner} onClose={() => setScannerOpen(false)} />}
+      {scannerOpen && (
+        <PhoneScannerDialog scanner={scanner} canManageProducts={!!context.canManageProducts} onClose={() => setScannerOpen(false)} />
+      )}
       {scanNotice && (
         <div
           role="status"
